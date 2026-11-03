@@ -1,0 +1,27 @@
+# Every change to the index passes `modelly hub check`: the schema, unique names, a Modelly
+# specifier that parses, a complete model card with a validation stamp, and the sha256 of
+# every file an entry points to.
+name: check
+
+on:
+  pull_request:
+    paths: ["index.json"]
+  push:
+    branches: [main]
+    paths: ["index.json"]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # modelly hub ships in Modelly 1.5; until it is on PyPI, install it from main.
+      - run: python -m pip install "modelly-abm @ git+https://github.com/RemiPelloux/Modelly@main"
+      - run: modelly hub check index.json

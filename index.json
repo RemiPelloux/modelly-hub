@@ -1,0 +1,1368 @@
+{
+  "schema": 1,
+  "models": [
+    {
+      "name": "age_seir",
+      "title": "Age-structured SEIR with contact matrices",
+      "field": "epidemiology",
+      "summary": "SEIR over age groups mixing through a contact matrix, as binomial cohorts.",
+      "version": "1.5.0",
+      "kind": "zoo",
+      "target": "modelly.zoo.age_seir.model:AgeSEIR",
+      "modelly": ">=1.5,<2",
+      "source": {
+        "requirement": "modelly-abm>=1.5,<2"
+      },
+      "keywords": [
+        "epidemiology",
+        "age",
+        "seir"
+      ],
+      "authors": [
+        "Modelly contributors"
+      ],
+      "license": "Apache-2.0",
+      "card": {
+        "name": "age_seir",
+        "title": "Age-structured SEIR with contact matrices",
+        "model": "modelly.zoo.age_seir.model:AgeSEIR",
+        "summary": "An SEIR epidemic over age groups that mix through a contact matrix, written as binomial cohorts so a million people cost what a hundred do.",
+        "intended_use": [
+          "Teaching how age mixing shapes an epidemic: attack rates by group, the role of the contact matrix, R0 as a spectral radius.",
+          "A starting point for age-structured epidemic models, with a validated core to extend (vaccination, interventions on contacts).",
+          "Comparing scenarios in relative terms (contact reductions in one group against another) on a stated contact matrix."
+        ],
+        "out_of_scope": [
+          "Forecasting a real epidemic: the default contact matrix is illustrative, not survey data, and nothing is calibrated.",
+          "Decisions about a specific population without a contact matrix measured on it (social-contact surveys, or `scenario_from_population`).",
+          "Diseases whose natural history is not SEIR with geometric periods (waning immunity, asymptomatic carriers, age-dependent severity)."
+        ],
+        "data": [
+          "None by default: group sizes, the 3 x 3 contact matrix and the rates are illustrative values in `SEIRScenario`.",
+          "Optionally, a synthetic population from census tables (`modelly.population`), from which `scenario_from_population` takes group sizes and measures the contact matrix."
+        ],
+        "limits": [
+          "Homogeneous mixing within each age group: no households, places or networks, so local saturation and clustering are absent.",
+          "One step is one unit of time with transitions drawn once per step; the exposed and infectious periods are geometric, not fixed or gamma-distributed.",
+          "Closed population: no births, deaths or migration, so runs longer than one epidemic wave are not meaningful.",
+          "The final-size check validates the transmission core, not the time course: peak timing depends on the step and the periods."
+        ],
+        "ethics": [
+          "Age-targeted results (who to protect or restrict first) affect real groups; present them with their intervals and with the assumptions above, never as a forecast.",
+          "An illustrative contact matrix can make one age group look responsible for spread; say where the matrix comes from whenever results are shown."
+        ],
+        "validation": [
+          {
+            "check": "attack rate within five standard deviations of the final-size relation (one group and three equal groups, three seeds)",
+            "test": "tests/zoo/test_age_seir.py::test_final_size_relation_homogeneous"
+          },
+          {
+            "check": "each age group's attack rate against the multi-group final-size relation",
+            "test": "tests/zoo/test_age_seir.py::test_final_size_by_age_group"
+          },
+          {
+            "check": "an outbreak with R0 below one stays small; nobody is created or lost; same seed, same epidemic",
+            "test": "tests/zoo/test_age_seir.py"
+          }
+        ],
+        "references": [
+          "Kermack, W. O. and McKendrick, A. G. (1927). A contribution to the mathematical theory of epidemics. Proceedings of the Royal Society A, 115, 700-721.",
+          "Mossong, J. et al. (2008). Social contacts and mixing patterns relevant to the spread of infectious diseases. PLoS Medicine, 5(3), e74.",
+          "Andersson, H. and Britton, T. (2000). Stochastic Epidemic Models and Their Statistical Analysis. Lecture Notes in Statistics 151, Springer."
+        ],
+        "sources": [],
+        "validated": {
+          "source": "sha256:6a004228a934a9d59400cb7b31af0b0c140936de7e90e92b47c76c84d4f7f834",
+          "modelly": "1.4.3",
+          "date": "2026-11-03"
+        }
+      }
+    },
+    {
+      "name": "within_host",
+      "title": "Within-host and between-host epidemic",
+      "field": "epidemiology",
+      "summary": "Hosts infect each other; each infection is a viral ODE inside its host.",
+      "version": "1.5.0",
+      "kind": "zoo",
+      "target": "modelly.zoo.within_host.model:WithinHost",
+      "modelly": ">=1.5,<2",
+      "source": {
+        "requirement": "modelly-abm>=1.5,<2"
+      },
+      "keywords": [
+        "epidemiology",
+        "within",
+        "host"
+      ],
+      "authors": [
+        "Modelly contributors"
+      ],
+      "license": "Apache-2.0",
+      "card": {
+        "name": "within_host",
+        "title": "Within-host and between-host epidemic",
+        "model": "modelly.zoo.within_host.model:WithinHost",
+        "summary": "Hosts infect each other while each infection runs as a target-cell-limited viral ODE inside its host, all hosts integrated as one batch with each host's own solve_ivp steps.",
+        "intended_use": [
+          "Teaching how within-host dynamics (viral growth, a threshold for infectiousness) shape an epidemic between hosts.",
+          "A starting point for nested models: per-host treatment, immunity or dose effects on top of a validated viral core.",
+          "Showing per-agent ODEs with events at scale: onsets and clearances located to the instant for a hundred thousand hosts."
+        ],
+        "out_of_scope": [
+          "Forecasting an influenza season or any real outbreak: contacts and transmissibility are illustrative and nothing is calibrated to case data.",
+          "Clinical questions about individual patients: the viral parameters are of the order fitted for influenza A, in relative units, not a patient's.",
+          "Infections with a latent reservoir, an immune response or reinfection, which the three-equation model does not have."
+        ],
+        "data": [
+          "None by default: the viral rates are of the order Baccam et al. (2006) fitted for influenza A, in relative units, and the contact parameters in `WithinHostScenario` are illustrative.",
+          "The infection rate of each host is drawn from a lognormal law with the scenario's median and spread, from the model's seed."
+        ],
+        "limits": [
+          "Homogeneous mixing between hosts: the chance of exposure depends only on the share infectious, with no households, places or networks.",
+          "Infectiousness is all or nothing at a virus threshold; transmission does not grow with the load.",
+          "No immune response: a host's infection ends only when its target cells are used up, and an exposed host is never exposed again.",
+          "Exposure happens once a day in the transmission phase; only the course of each infection is continuous in time."
+        ],
+        "ethics": [
+          "Results about who becomes infectious when could be read as advice on isolation periods; they rest on illustrative parameters and must not be presented as such.",
+          "Host-to-host variation comes from a drawn infection rate, not from data on people; say so when the spread of outcomes between hosts is shown."
+        ],
+        "validation": [
+          {
+            "check": "one day of the whole population equals one solve_ivp call per exposed host, final states and onset times, to round-off",
+            "test": "tests/zoo/test_within_host.py::test_each_host_follows_its_own_solve_ivp_call"
+          },
+          {
+            "check": "with no target cells the virus clears at log(V0 / threshold) / c, to a relative 1e-6, for fifty initial loads",
+            "test": "tests/zoo/test_within_host.py::test_clearance_without_target_cells_is_exponential"
+          },
+          {
+            "check": "cells stay in [0, 1]; an outbreak needs contacts; same seed same outbreak, straight or resumed from a checkpoint",
+            "test": "tests/zoo/test_within_host.py"
+          }
+        ],
+        "references": [
+          "Baccam, P., Beauchemin, C., Macken, C. A., Hayden, F. G. and Perelson, A. S. (2006). Kinetics of influenza A virus infection in humans. Journal of Virology, 80(15), 7590-7599.",
+          "Hairer, E., Norsett, S. P. and Wanner, G. (1993). Solving Ordinary Differential Equations I: Nonstiff Problems, 2nd ed. Springer.",
+          "Mideo, N., Alizon, S. and Day, T. (2008). Linking within- and between-host dynamics in the evolutionary epidemiology of infectious diseases. Trends in Ecology and Evolution, 23(9), 511-517."
+        ],
+        "sources": [],
+        "validated": {
+          "source": "sha256:64f831f6ef170ecc5159627270cd6425a0bcd92fd2f00f02478f88e9c6a070fa",
+          "modelly": "1.4.3",
+          "date": "2026-11-03"
+        }
+      }
+    },
+    {
+      "name": "vector_borne",
+      "title": "Vector-borne transmission on a landscape",
+      "field": "epidemiology",
+      "summary": "Ross-Macdonald transmission between moving hosts and mosquito cohorts per cell.",
+      "version": "1.5.0",
+      "kind": "zoo",
+      "target": "modelly.zoo.vector_borne.model:VectorBorne",
+      "modelly": ">=1.5,<2",
+      "source": {
+        "requirement": "modelly-abm>=1.5,<2"
+      },
+      "keywords": [
+        "epidemiology",
+        "vector",
+        "borne"
+      ],
+      "authors": [
+        "Modelly contributors"
+      ],
+      "license": "Apache-2.0",
+      "card": {
+        "name": "vector_borne",
+        "title": "Vector-borne transmission on a landscape",
+        "model": "modelly.zoo.vector_borne.model:VectorBorne",
+        "summary": "Ross-Macdonald transmission between hosts that move on a landscape grid and mosquitoes held as binomial cohorts per cell, with an optional habitat raster setting where the mosquitoes are.",
+        "intended_use": [
+          "Teaching the Ross-Macdonald model: how vector density, biting rate, mosquito survival and incubation combine into R0, and why R0 is linear in the density `m`.",
+          "Exploring in relative terms how a habitat raster and host movement shape where and how far an outbreak spreads.",
+          "A starting point for vector-borne models on real landscapes, with a validated transmission core to extend (vector control, seasonality, more host states)."
+        ],
+        "out_of_scope": [
+          "Forecasting a real malaria, dengue or other vector-borne outbreak: the bionomics are illustrative and nothing is calibrated.",
+          "Planning vector control for a specific place without entomological data measured there (densities, biting and survival rates, habitat).",
+          "Diseases with a host latent period, waning immunity, several vector species or human-to-human transmission, none of which the model has."
+        ],
+        "data": [
+          "None by default: the 10 x 10 landscape, 20 hosts per cell and the daily rates are illustrative values in `VectorScenario`.",
+          "Optionally, a habitat suitability raster of shape `(width, height)`, for example the values of a `modelly.space.geo.RasterLayer`, passed as `habitat`."
+        ],
+        "limits": [
+          "Mosquitoes do not move between cells and bite only hosts of their own cell, chosen at random; hosts move to a random neighbouring cell.",
+          "One step is one day with every transition drawn once per step, so the infectious and incubation periods are geometric.",
+          "Emergence keeps the vector density at `m`: no seasonality, weather or density dependence in the mosquito population.",
+          "Closed host population with no births, deaths or loss of immunity; the validation orders outbreak sizes by R0, it does not check the time course."
+        ],
+        "ethics": [
+          "Results about where an outbreak spreads can steer spraying, bed-net or other resources towards some communities and away from others; present them as illustrative, with the assumptions above.",
+          "A habitat raster can make one area look like the source of transmission; say where the raster comes from whenever results are shown."
+        ],
+        "validation": [
+          {
+            "check": "R0 is linear in the vector density, below one at m = 0.5 and above one at m = 2 and 4, and matches the Ross-Macdonald formula",
+            "test": "tests/zoo/test_vector_borne.py::test_r0_is_linear_in_vector_density"
+          },
+          {
+            "check": "attack rates come out in the order of R0 for three seeds: under 5 % when R0 < 1, over 80 % at R0 about 4",
+            "test": "tests/zoo/test_vector_borne.py::test_attack_rates_follow_r0"
+          },
+          {
+            "check": "a habitat raster confines the mosquitoes; hosts are conserved; same seed, same epidemic",
+            "test": "tests/zoo/test_vector_borne.py"
+          }
+        ],
+        "references": [
+          "Ross, R. (1911). The Prevention of Malaria, 2nd ed. John Murray.",
+          "Macdonald, G. (1957). The Epidemiology and Control of Malaria. Oxford University Press."
+        ],
+        "sources": [],
+        "validated": {
+          "source": "sha256:ee8b354bc1e7f8bd6d5b1831764b6434a0982d8eedb6ca299337d445ff7a6058",
+          "modelly": "1.4.3",
+          "date": "2026-11-03"
+        }
+      }
+    },
+    {
+      "name": "habitat_selection",
+      "title": "Habitat selection on a real land-cover raster",
+      "field": "ecology",
+      "summary": "Animals disperse over ESA WorldCover land cover and settle where it suits them.",
+      "version": "1.5.0",
+      "kind": "zoo",
+      "target": "modelly.zoo.habitat_selection.model:HabitatSelection",
+      "modelly": ">=1.5,<2",
+      "source": {
+        "requirement": "modelly-abm>=1.5,<2"
+      },
+      "keywords": [
+        "ecology",
+        "habitat",
+        "selection"
+      ],
+      "authors": [
+        "Modelly contributors"
+      ],
+      "license": "Apache-2.0",
+      "card": {
+        "name": "habitat_selection",
+        "title": "Habitat selection on a real land-cover raster",
+        "model": "modelly.zoo.habitat_selection.model:HabitatSelection",
+        "summary": "Animals disperse over a land-cover raster by a Metropolis rule weighted by a preference per land-cover class, and settle in proportion to habitat quality and area.",
+        "intended_use": [
+          "Teaching the link between movement and habitat use: a Metropolis walk whose stationary law is the resource-selection-function view of occupancy.",
+          "A starting point for dispersal models on real land cover, with any `RasterLayer`'s values in place of the bundled window.",
+          "Comparing in relative terms how preference weights and jump radius change occupancy across land-cover classes."
+        ],
+        "out_of_scope": [
+          "Predicting where a real species lives: the default weights describe an illustrative woodland species and are not fitted to any species.",
+          "Conservation or land-use decisions without preference weights estimated from data on the species in question.",
+          "Questions about population dynamics, territories or interactions between animals: the animals are independent and never born or die."
+        ],
+        "data": [
+          "A bundled 120 x 120 window of ESA WorldCover 2021 at 10 m over the Intervale in Burlington, Vermont (CC BY 4.0, \u00a9 ESA WorldCover project 2021); its source and checksum are in `modelly/space/geo/data/NOTICE.md`. Reading it needs the `geo` extra.",
+          "Preference weights per class are illustrative values (`WOODLAND` in the model); any `(width, height)` land-cover array can replace the raster through `cover`."
+        ],
+        "limits": [
+          "Animals are independent: no density dependence, competition or social behaviour, so occupancy depends only on the weights and the cover.",
+          "Movement is a symmetric jump within a square of side `2 * radius + 1` accepted by the Metropolis rule, not a model of real movement paths or barriers between cells.",
+          "Weights depend on the land-cover class alone, not on distance to edges, patch size or neighbouring classes.",
+          "The validation checks the stationary law, not how fast animals reach it on a given raster."
+        ],
+        "ethics": [
+          "Occupancy maps can be read as statements about where a species needs protection; with illustrative weights they say nothing about any real species, so say so whenever they are shown."
+        ],
+        "validation": [
+          {
+            "check": "from a uniform start far from the law, every class share is within five multinomial standard deviations of the stationary law (three seeds)",
+            "test": "tests/zoo/test_habitat_selection.py::test_uniform_start_converges_to_the_law"
+          },
+          {
+            "check": "a population started at the law stays within that bound at every step",
+            "test": "tests/zoo/test_habitat_selection.py::test_law_is_stationary"
+          },
+          {
+            "check": "a class of weight 0 is never entered; equal weights give area shares; same seed, same walk",
+            "test": "tests/zoo/test_habitat_selection.py"
+          }
+        ],
+        "references": [
+          "Metropolis, N., Rosenbluth, A. W., Rosenbluth, M. N., Teller, A. H. and Teller, E. (1953). Equation of state calculations by fast computing machines. Journal of Chemical Physics, 21(6), 1087-1092.",
+          "Manly, B. F. J., McDonald, L. L., Thomas, D. L., McDonald, T. L. and Erickson, W. P. (2002). Resource Selection by Animals, 2nd ed. Kluwer.",
+          "Zanaga, D. et al. (2022). ESA WorldCover 10 m 2021 v200. Zenodo, doi:10.5281/zenodo.7254221."
+        ],
+        "sources": [],
+        "validated": {
+          "source": "sha256:fe74764fc237b39af34eeb345350bddc354733125cee47f91443c9277e1cf73d",
+          "modelly": "1.4.3",
+          "date": "2026-11-03"
+        }
+      }
+    },
+    {
+      "name": "hospital_epidemic",
+      "title": "Epidemic coupled to hospital capacity",
+      "field": "epidemiology",
+      "summary": "SIR agents whose admissions drive a hospital stock-flow ODE that damps contacts.",
+      "version": "1.5.0",
+      "kind": "zoo",
+      "target": "modelly.zoo.hospital_epidemic.model:HospitalEpidemic",
+      "modelly": ">=1.5,<2",
+      "source": {
+        "requirement": "modelly-abm>=1.5,<2"
+      },
+      "keywords": [
+        "epidemiology",
+        "hospital",
+        "epidemic"
+      ],
+      "authors": [
+        "Modelly contributors"
+      ],
+      "license": "Apache-2.0",
+      "card": {
+        "name": "hospital_epidemic",
+        "title": "Epidemic coupled to hospital capacity",
+        "model": "modelly.zoo.hospital_epidemic.model:HospitalEpidemic",
+        "summary": "SIR agents whose severe cases fill a hospital stock-flow model that opens surge beds, while the pressure on beds feeds back to lower contacts.",
+        "intended_use": [
+          "Teaching how an agent-based epidemic couples to a system-dynamics model: admissions flow one way, bed pressure the other, with a lag of one step.",
+          "Comparing scenarios in relative terms: how surge capacity, length of stay or the strength of the contact response change peak occupancy and the attack rate.",
+          "A starting point for epidemic and health-system models, with a validated epidemic core, an exactly checked hospital and a closed mass balance."
+        ],
+        "out_of_scope": [
+          "Forecasting bed demand for a real hospital or health system: the rates, the severe share and the bed numbers are illustrative and nothing is calibrated.",
+          "Capacity or triage decisions for a specific hospital without its own admission, stay and staffing data.",
+          "Epidemics whose natural history is not SIR with geometric periods, or where severity depends on age or other attributes."
+        ],
+        "data": [
+          "None by default: the population of 20,000, the transmission and recovery rates, the 2 % severe share and the hospital parameters are illustrative values in `HospitalScenario`."
+        ],
+        "limits": [
+          "Homogeneous mixing: no households, places or networks, and everyone responds to bed pressure in the same way.",
+          "Admitted patients only occupy beds and are discharged at rate `occupied / stay`; there are no deaths, no staff limits and no turned-away patients when beds run out.",
+          "One step is one unit of time with transitions drawn once per step, and the hospital sees each step's admissions held constant over that step.",
+          "Closed population with no births, deaths or waning immunity; the final-size check holds only without the contact response."
+        ],
+        "ethics": [
+          "Results about bed capacity and contact reductions bear on decisions that affect patients and health workers; present them as illustrative, with the assumptions above, never as a forecast.",
+          "The contact response is one illustrative rule; do not read it as a measured behaviour of any population."
+        ],
+        "validation": [
+          {
+            "check": "without the response, the attack rate is within five standard deviations of the final-size relation (three seeds)",
+            "test": "tests/zoo/test_hospital_epidemic.py::test_final_size_relation_without_response"
+          },
+          {
+            "check": "occupancy and beds match the exact matrix-exponential solution within 1e-6, with and without the response",
+            "test": "tests/zoo/test_hospital_epidemic.py::test_hospital_matches_the_exact_linear_solution"
+          },
+          {
+            "check": "admissions equal patients in hospital plus those discharged, to round-off, and beds equal base beds plus the net amount opened",
+            "test": "tests/zoo/test_hospital_epidemic.py::test_admissions_balance_occupancy_and_discharges"
+          },
+          {
+            "check": "a stronger response lowers peak occupancy and the attack rate; people are conserved; a resumed checkpoint is identical; same seed, same run",
+            "test": "tests/zoo/test_hospital_epidemic.py"
+          }
+        ],
+        "references": [
+          "Kermack, W. O. and McKendrick, A. G. (1927). A contribution to the mathematical theory of epidemics. Proceedings of the Royal Society A, 115, 700-721.",
+          "Andersson, H. and Britton, T. (2000). Stochastic Epidemic Models and Their Statistical Analysis. Lecture Notes in Statistics 151, Springer.",
+          "Sterman, J. D. (2000). Business Dynamics: Systems Thinking and Modeling for a Complex World. Irwin/McGraw-Hill."
+        ],
+        "sources": [],
+        "validated": {
+          "source": "sha256:510d3871dec98900d1f07699f8710115a0447a746dd6d09dcbe74f5a5b3d1db7",
+          "modelly": "1.4.3",
+          "date": "2026-11-03"
+        }
+      }
+    },
+    {
+      "name": "energy_budget",
+      "title": "Individual-based population with energy budgets",
+      "field": "ecology",
+      "summary": "Foragers that eat, pay a metabolic cost, reproduce and starve on a resource grid.",
+      "version": "1.5.0",
+      "kind": "zoo",
+      "target": "modelly.zoo.energy_budget.model:EnergyBudget",
+      "modelly": ">=1.5,<2",
+      "source": {
+        "requirement": "modelly-abm>=1.5,<2"
+      },
+      "keywords": [
+        "ecology",
+        "energy",
+        "budget"
+      ],
+      "authors": [
+        "Modelly contributors"
+      ],
+      "license": "Apache-2.0",
+      "card": {
+        "name": "energy_budget",
+        "title": "Individual-based population with energy budgets",
+        "model": "modelly.zoo.energy_budget.model:EnergyBudget",
+        "summary": "Foragers that walk a resource grid, eat, pay a metabolic cost, reproduce by splitting their energy and starve, so the energy balance sets the carrying capacity.",
+        "intended_use": [
+          "Teaching how an energy budget regulates an individual-based population, and how the carrying capacity follows from inflow, efficiency and cost.",
+          "A starting point for individual-based ecology models with a validated energy core to extend (age, spatial variation in inflow, predators).",
+          "Comparing in relative terms how resource inflow, assimilation efficiency or metabolic cost move the equilibrium population."
+        ],
+        "out_of_scope": [
+          "Predicting the abundance of a real species: the parameters are illustrative and nothing is calibrated.",
+          "Management decisions such as harvest or stocking levels for a real population.",
+          "Questions that depend on age, sex, size or behaviour beyond a random walk, none of which the foragers have."
+        ],
+        "data": [
+          "None by default: the 30 x 30 grid, the inflow, efficiency, cost and birth threshold are illustrative values in `EnergyScenario`."
+        ],
+        "limits": [
+          "Foragers move to a random neighbouring cell every step and do not seek food; the foragers in a cell share its resource equally.",
+          "The resource is never capped and is eaten whenever a forager visits, which is what makes the long-run intake equal the inflow.",
+          "Reproduction is a split of energy at a fixed threshold, with no age, mates or maturation; death comes only from starvation.",
+          "The validation checks the mean population against the carrying capacity, not the size or period of fluctuations around it."
+        ],
+        "ethics": [
+          "This is a teaching model with no real population behind it; results carry no direct consequences for people, but say it is illustrative if they are used to argue about a real population."
+        ],
+        "validation": [
+          {
+            "check": "mean population after a burn-in of 150 steps is within 3 % of the carrying capacity from the energy balance (three seeds, two inflows)",
+            "test": "tests/zoo/test_energy_budget.py::test_equilibrium_density_is_the_carrying_capacity"
+          },
+          {
+            "check": "after the burn-in the uneaten resource stock does not grow: its mean over the second half is within 5 % of the first half",
+            "test": "tests/zoo/test_energy_budget.py::test_resource_stock_stays_bounded"
+          },
+          {
+            "check": "without inflow the population dies out; energy columns stay in range and follow the agents; same seed, same population curve",
+            "test": "tests/zoo/test_energy_budget.py"
+          }
+        ],
+        "references": [
+          "Grimm, V. and Railsback, S. F. (2005). Individual-based Modeling and Ecology. Princeton University Press."
+        ],
+        "sources": [],
+        "validated": {
+          "source": "sha256:9fb0746f6abe0e6198c169849a3d5c38ee148869faa1bc5fb479030c95df4bb0",
+          "modelly": "1.4.3",
+          "date": "2026-11-03"
+        }
+      }
+    },
+    {
+      "name": "nutrient_foragers",
+      "title": "Foragers on a diffusing nutrient field",
+      "field": "ecology",
+      "summary": "Foragers eat from a nutrient that enters at a river bank and diffuses inland.",
+      "version": "1.5.0",
+      "kind": "zoo",
+      "target": "modelly.zoo.nutrient_foragers.model:NutrientForagers",
+      "modelly": ">=1.5,<2",
+      "source": {
+        "requirement": "modelly-abm>=1.5,<2"
+      },
+      "keywords": [
+        "ecology",
+        "nutrient",
+        "foragers"
+      ],
+      "authors": [
+        "Modelly contributors"
+      ],
+      "license": "Apache-2.0",
+      "card": {
+        "name": "nutrient_foragers",
+        "title": "Foragers on a diffusing nutrient field",
+        "model": "modelly.zoo.nutrient_foragers.model:NutrientForagers",
+        "summary": "Foragers eat from a nutrient that enters along a river bank, diffuses inland and decays, coupled to the field so that the energy balance sets the carrying capacity.",
+        "intended_use": [
+          "Teaching how agents couple to a diffusing field: the foragers' phase writes what was eaten, the field adds it and diffuses one phase later.",
+          "Showing how the energy balance sets a carrying capacity that does not depend on how far the nutrient diffuses, and how decay takes its share.",
+          "A starting point for consumer-resource models on a spatial field, with a closed nutrient budget to keep when extending it."
+        ],
+        "out_of_scope": [
+          "Predicting real nutrient concentrations or consumer densities along a river: the supply, diffusion and decay are illustrative and nothing is calibrated.",
+          "Water-quality or land-management decisions for a real catchment.",
+          "Systems where the nutrient is carried by flow (advection) or leaves through the boundaries: the landscape is closed and the field only diffuses and decays."
+        ],
+        "data": [
+          "None by default: the 20 x 20 grid, the supply along the western edge, the diffusion coefficient and the forager parameters are illustrative values in `NutrientScenario`."
+        ],
+        "limits": [
+          "Foragers move to a random neighbouring cell and do not climb the nutrient gradient; the density pattern comes from the field alone.",
+          "The nutrient enters only along the western edge at a constant rate, with closed walls elsewhere and no seasonality.",
+          "Reproduction is a split of energy at a fixed threshold, with no age or maturation; death comes only from starvation.",
+          "The validation checks the mean population against the energy balance, not the size of fluctuations or the transient approach to it."
+        ],
+        "ethics": [
+          "This is a teaching model with no real system behind it; results carry no direct consequences for people, but say it is illustrative if they are used to argue about a real river or population."
+        ],
+        "validation": [
+          {
+            "check": "without decay, the mean population after a burn-in of 150 steps is within 3 % of the carrying capacity (three seeds)",
+            "test": "tests/zoo/test_nutrient_foragers.py::test_population_settles_at_the_carrying_capacity"
+          },
+          {
+            "check": "the mean population is within 1 % of the energy balance with the measured decay and starvation deficit (two seeds, two decay rates)",
+            "test": "tests/zoo/test_nutrient_foragers.py::test_energy_balance_with_decay"
+          },
+          {
+            "check": "the nutrient budget closes to round-off: on the grid is what was added minus what decayed, and added is supply minus eaten",
+            "test": "tests/zoo/test_nutrient_foragers.py::test_nutrient_budget_closes_to_round_off"
+          },
+          {
+            "check": "density near the river is over ten times that of the eastern half; a resumed checkpoint is identical; same seed, same run",
+            "test": "tests/zoo/test_nutrient_foragers.py"
+          }
+        ],
+        "references": [
+          "Grimm, V. and Railsback, S. F. (2005). Individual-based Modeling and Ecology. Princeton University Press.",
+          "Okubo, A. and Levin, S. A. (2001). Diffusion and Ecological Problems: Modern Perspectives, 2nd ed. Springer."
+        ],
+        "sources": [],
+        "validated": {
+          "source": "sha256:7f21d20f4ad391ecb964080619af6da8ead6a86200f8abc853713a99b7e60f66",
+          "modelly": "1.4.3",
+          "date": "2026-11-03"
+        }
+      }
+    },
+    {
+      "name": "forest_fire",
+      "title": "Forest fire and succession on a raster",
+      "field": "ecology",
+      "summary": "Fire spreading through a tree raster, with optional regrowth and lightning.",
+      "version": "1.5.0",
+      "kind": "zoo",
+      "target": "modelly.zoo.forest_fire.model:ForestFire",
+      "modelly": ">=1.5,<2",
+      "source": {
+        "requirement": "modelly-abm>=1.5,<2"
+      },
+      "keywords": [
+        "ecology",
+        "forest",
+        "fire"
+      ],
+      "authors": [
+        "Modelly contributors"
+      ],
+      "license": "Apache-2.0",
+      "card": {
+        "name": "forest_fire",
+        "title": "Forest fire and succession on a raster",
+        "model": "modelly.zoo.forest_fire.model:ForestFire",
+        "summary": "Fire spreads from the west edge through a raster of trees, with optional regrowth and lightning (Drossel-Schwabl); without them it is site percolation on the square lattice.",
+        "intended_use": [
+          "Teaching percolation: how the burnt share jumps at the threshold density `p_c = 0.592746` of the square lattice.",
+          "Teaching self-organised disturbance regimes with regrowth and lightning switched on (the Drossel-Schwabl model).",
+          "A starting point for raster disturbance models, with a per-cell tree probability from a `cover` raster in place of a uniform density."
+        ],
+        "out_of_scope": [
+          "Predicting the spread of a real wildfire: there is no wind, slope, fuel moisture, weather or fire suppression, and nothing is calibrated.",
+          "Fire-risk, evacuation or land-management decisions for a real place.",
+          "Questions about fire intensity or duration: a cell is empty, a tree, burning or burnt, and burns out in one step."
+        ],
+        "data": [
+          "None by default: the 100 x 100 raster and the tree density of 0.6 are illustrative values in `ForestScenario`.",
+          "Optionally, a per-cell tree probability of shape `(width, height)`, for example the values of a `modelly.space.geo.RasterLayer`, passed as `cover`."
+        ],
+        "limits": [
+          "Fire spreads to the four von Neumann neighbours of a burning cell with certainty, and every burning cell burns out after one step.",
+          "The fire starts from all trees on the west edge, so results describe a front crossing the raster, not ignition at a point.",
+          "Growth and lightning are constant probabilities per cell and step, with no age, species or seasons.",
+          "The validation covers the percolation case without growth and lightning; succession mode is only checked to keep burning and conserve cells."
+        ],
+        "ethics": [
+          "Fire results can look like statements about real fire risk; this model has none of the physics of a real fire, so say it is illustrative whenever results are shown."
+        ],
+        "validation": [
+          {
+            "check": "at p_c - 0.15 the fire never reaches the east edge and burns under 10 % of the trees (three seeds)",
+            "test": "tests/zoo/test_forest_fire.py::test_below_threshold_the_fire_stays_near_the_edge"
+          },
+          {
+            "check": "at p_c + 0.15 the fire always reaches the east edge and burns over 90 % of the trees (three seeds)",
+            "test": "tests/zoo/test_forest_fire.py::test_above_threshold_the_fire_crosses_the_forest"
+          },
+          {
+            "check": "the mean burnt share rises with density; a cover raster confines the trees; succession keeps burning and conserves cells; same seed, same fire",
+            "test": "tests/zoo/test_forest_fire.py"
+          }
+        ],
+        "references": [
+          "Drossel, B. and Schwabl, F. (1992). Self-organized critical forest-fire model. Physical Review Letters, 69(11), 1629-1632.",
+          "Newman, M. E. J. and Ziff, R. M. (2000). Efficient Monte Carlo algorithm and high-precision results for percolation. Physical Review Letters, 85(19), 4104-4107.",
+          "Stauffer, D. and Aharony, A. (1994). Introduction to Percolation Theory, 2nd ed. Taylor and Francis."
+        ],
+        "sources": [],
+        "validated": {
+          "source": "sha256:0f0985a3e857176b802866a91f4ebf11a9244105d7e5e6d795acda9629ec28a7",
+          "modelly": "1.4.3",
+          "date": "2026-11-03"
+        }
+      }
+    },
+    {
+      "name": "order_book",
+      "title": "Continuous double auction (zero-intelligence order book)",
+      "field": "economics",
+      "summary": "Random limit, market and cancel orders (per resting order) in a limit order book.",
+      "version": "1.5.0",
+      "kind": "zoo",
+      "target": "modelly.zoo.order_book.model:OrderBook",
+      "modelly": ">=1.5,<2",
+      "source": {
+        "requirement": "modelly-abm>=1.5,<2"
+      },
+      "keywords": [
+        "economics",
+        "order",
+        "book"
+      ],
+      "authors": [
+        "Modelly contributors"
+      ],
+      "license": "Apache-2.0",
+      "card": {
+        "name": "order_book",
+        "title": "Continuous double auction (zero-intelligence order book)",
+        "model": "modelly.zoo.order_book.model:OrderBook",
+        "summary": "A limit order book on an integer price grid fed by random market, limit and cancel orders, in the zero-intelligence style of Farmer, Patelli and Zovko: no trader has a strategy, yet returns have fat tails.",
+        "intended_use": [
+          "Teaching how a limit order book works: best quotes, the spread, market orders that take liquidity and limit orders that provide it.",
+          "Showing that a stylised fact (fat-tailed returns) can come from the mechanics of the book alone, with no strategic traders.",
+          "A starting point for order-book models, with a validated core to extend (order sizes, informed traders, other placement rules)."
+        ],
+        "out_of_scope": [
+          "Forecasting prices or returns of a real asset: the order flow is random and nothing is calibrated to market data.",
+          "Designing or testing trading strategies: there are no strategic traders, and the book does not respond to them as a real market would.",
+          "Claims about stylised facts beyond fat tails (volatility clustering, the shape of the spread distribution): the tests check only kurtosis and a valid book."
+        ],
+        "data": [
+          "None by default: the price grid, the order rates and the initial depth are illustrative values in `OrderBookScenario`."
+        ],
+        "limits": [
+          "Every order is one unit and limit prices are uniform within `window` ticks of the opposite best quote; real order sizes and placements are far from uniform.",
+          "Order flow is zero-intelligence: rates do not depend on prices, the spread or past returns.",
+          "A side is never emptied: an event that would remove its last order becomes a limit order on that side, which a real book does not guarantee.",
+          "Prices live on a fixed grid of `ticks` levels; limit orders that would fall outside it are clipped to its edges."
+        ],
+        "ethics": [
+          "This is a toy market; results presented as evidence about a real market or a regulation (tick sizes, cancellation rules) would overstate what it shows."
+        ],
+        "validation": [
+          {
+            "check": "excess kurtosis of mid-price returns above five times its sqrt(24 / n) standard error under normal returns (three seeds)",
+            "test": "tests/zoo/test_order_book.py::test_returns_have_fat_tails"
+          },
+          {
+            "check": "the spread is at least one tick at every step and no level holds a negative number of orders",
+            "test": "tests/zoo/test_order_book.py::test_spread_is_at_least_one_tick"
+          },
+          {
+            "check": "aggressive market orders never empty a side of a one-order book; same seed, same price path",
+            "test": "tests/zoo/test_order_book.py"
+          }
+        ],
+        "references": [
+          "Farmer, J. D., Patelli, P. and Zovko, I. I. (2005). The predictive power of zero intelligence in financial markets. PNAS, 102(6), 2254-2259.",
+          "Cont, R. (2001). Empirical properties of asset returns: stylized facts and statistical issues. Quantitative Finance, 1, 223-236."
+        ],
+        "sources": [],
+        "validated": {
+          "source": "sha256:23303fbeaf511a5e38895017cd28e768cc8e1bce266f3f29f7679605c9ee7c1c",
+          "modelly": "1.4.3",
+          "date": "2026-11-03"
+        }
+      }
+    },
+    {
+      "name": "kinetic_wealth",
+      "title": "Boltzmann wealth exchange",
+      "field": "economics",
+      "summary": "Random pairs pass one unit of money: the Boltzmann-Gibbs distribution emerges.",
+      "version": "1.5.0",
+      "kind": "zoo",
+      "target": "modelly.zoo.kinetic_wealth.model:KineticWealth",
+      "modelly": ">=1.5,<2",
+      "source": {
+        "requirement": "modelly-abm>=1.5,<2"
+      },
+      "keywords": [
+        "economics",
+        "kinetic",
+        "wealth"
+      ],
+      "authors": [
+        "Modelly contributors"
+      ],
+      "license": "Apache-2.0",
+      "card": {
+        "name": "kinetic_wealth",
+        "title": "Boltzmann wealth exchange",
+        "model": "modelly.zoo.kinetic_wealth.model:KineticWealth",
+        "summary": "Random pairs of agents pass one unit of money at a time; money is conserved and nobody goes into debt, yet equal shares turn into an exponential (Boltzmann-Gibbs) distribution of wealth.",
+        "intended_use": [
+          "Teaching how inequality can emerge from random exchange alone, with equal agents and no skill or saving.",
+          "Comparing a simulated wealth distribution with an exact stationary law, as a worked example of validating a stochastic model.",
+          "A starting point for kinetic exchange models, with a validated core to extend (saving propensities, taxes, unequal exchange)."
+        ],
+        "out_of_scope": [
+          "Describing or forecasting the wealth distribution of a real economy: nothing is calibrated, and real distributions have Pareto tails this model lacks.",
+          "Arguing that real inequality is, or is not, deserved or random: the model has no production, work, inheritance or institutions.",
+          "Evaluating redistribution policies: there are no taxes, transfers or prices in the model."
+        ],
+        "data": [
+          "None by default: the number of agents and the starting money are illustrative values in `KineticScenario`."
+        ],
+        "limits": [
+          "Every exchange moves exactly one unit and every agent meets one random partner per step: no network, no geography, no preferences.",
+          "Money is conserved and the population is closed: no production, consumption, debt, births or deaths.",
+          "The validation is of the stationary law only; how fast equal shares spread out depends on the one-unit, one-matching-per-step rule."
+        ],
+        "ethics": [
+          "Results can be read as saying inequality is natural or inevitable; the model shows only what random exchange does, so present it with the assumptions above."
+        ],
+        "validation": [
+          {
+            "check": "time-averaged Gini within three single-snapshot standard deviations of the exact stationary law's Gini, which is about one half (three seeds)",
+            "test": "tests/zoo/test_kinetic_wealth.py::test_stationary_gini"
+          },
+          {
+            "check": "pooled wealth histogram closer to the exact marginal, in total variation, than one histogram of n independent draws (three seeds)",
+            "test": "tests/zoo/test_kinetic_wealth.py::test_stationary_histogram"
+          },
+          {
+            "check": "the exact marginal sums to one with mean `money`; money is conserved and never negative; same seed, same run",
+            "test": "tests/zoo/test_kinetic_wealth.py"
+          }
+        ],
+        "references": [
+          "Dragulescu, A. and Yakovenko, V. M. (2000). Statistical mechanics of money. European Physical Journal B, 17, 723-729."
+        ],
+        "sources": [],
+        "validated": {
+          "source": "sha256:49fdc31cdb0163501d04b0c1646e264861a7d7655b5a1a9d5848fa6e8d253388",
+          "modelly": "1.4.3",
+          "date": "2026-11-03"
+        }
+      }
+    },
+    {
+      "name": "bouchaud_mezard",
+      "title": "Bouchaud-Mezard wealth condensation",
+      "field": "economics",
+      "summary": "Multiplicative returns plus exchange: an inverse-gamma wealth distribution.",
+      "version": "1.5.0",
+      "kind": "zoo",
+      "target": "modelly.zoo.bouchaud_mezard.model:BouchaudMezard",
+      "modelly": ">=1.5,<2",
+      "source": {
+        "requirement": "modelly-abm>=1.5,<2"
+      },
+      "keywords": [
+        "economics",
+        "bouchaud",
+        "mezard"
+      ],
+      "authors": [
+        "Modelly contributors"
+      ],
+      "license": "Apache-2.0",
+      "card": {
+        "name": "bouchaud_mezard",
+        "title": "Bouchaud-Mezard wealth condensation",
+        "model": "modelly.zoo.bouchaud_mezard.model:BouchaudMezard",
+        "summary": "Each agent earns a random multiplicative return and exchanges with everybody at a mean-field rate; relative wealth settles to an inverse-gamma law with a Pareto tail that fattens as noise grows against exchange.",
+        "intended_use": [
+          "Teaching how multiplicative returns concentrate wealth and how exchange between agents holds that concentration back.",
+          "Comparing inequality (the Gini coefficient) across noise-to-exchange ratios against an analytic stationary law.",
+          "A starting point for wealth models with multiplicative noise, with a validated core to extend (networks of exchange, taxes, heterogeneous returns)."
+        ],
+        "out_of_scope": [
+          "Describing or forecasting a real economy's wealth distribution: the rates are illustrative and nothing is calibrated.",
+          "Recommending tax or redistribution levels: the exchange term is a stylised mean-field pull, not a policy instrument.",
+          "Regimes with sigma^2 / J of 2 or more (shape alpha of 2 or less): the stationary law then has infinite variance and the tests do not cover it."
+        ],
+        "data": [
+          "None by default: the number of agents, the exchange rate, the volatility and the step length are illustrative values in `BouchaudMezardScenario`."
+        ],
+        "limits": [
+          "Mean-field exchange: every agent exchanges with the average of everybody, with no network or local structure.",
+          "Returns are independent across agents and in time, with the same volatility for everyone.",
+          "Wealth is reported relative to the mean, so growth of total wealth is not modelled; the step `dt` adds a small discretisation bias.",
+          "The validation is of the stationary Gini only, for sigma^2 / J = 0.5, 1 and 1.5, not of the time course."
+        ],
+        "ethics": [
+          "Results can be read as saying wealth concentration is inevitable or that more exchange is the remedy; present them as properties of this stylised model, not of a real economy."
+        ],
+        "validation": [
+          {
+            "check": "time-averaged Gini within three single-snapshot standard deviations of the inverse-gamma law's Gini, for sigma^2 / J = 0.5, 1 and 1.5 (two seeds)",
+            "test": "tests/zoo/test_bouchaud_mezard.py::test_gini_matches_inverse_gamma"
+          },
+          {
+            "check": "both the analytic and the simulated Gini rise with sigma^2 / J",
+            "test": "tests/zoo/test_bouchaud_mezard.py::test_gini_rises_with_inequality"
+          },
+          {
+            "check": "shape alpha = 1 + 2 J / sigma^2; an unstable step is rejected; wealth stays positive with mean one; same seed, same run",
+            "test": "tests/zoo/test_bouchaud_mezard.py"
+          }
+        ],
+        "references": [
+          "Bouchaud, J.-P. and Mezard, M. (2000). Wealth condensation in a simple model of economy. Physica A, 282, 536-545."
+        ],
+        "sources": [],
+        "validated": {
+          "source": "sha256:94dd3213e573d45cb89f75ab56c6ab49e5375dd67dd3b84f01e3f1a2f70253fa",
+          "modelly": "1.4.3",
+          "date": "2026-11-03"
+        }
+      }
+    },
+    {
+      "name": "deffuant",
+      "title": "Deffuant bounded-confidence opinion dynamics",
+      "field": "sociology",
+      "summary": "Random pairs of agents compromise when their opinions are close enough.",
+      "version": "1.5.0",
+      "kind": "zoo",
+      "target": "modelly.zoo.deffuant.model:Deffuant",
+      "modelly": ">=1.5,<2",
+      "source": {
+        "requirement": "modelly-abm>=1.5,<2"
+      },
+      "keywords": [
+        "sociology",
+        "deffuant"
+      ],
+      "authors": [
+        "Modelly contributors"
+      ],
+      "license": "Apache-2.0",
+      "card": {
+        "name": "deffuant",
+        "title": "Deffuant bounded-confidence opinion dynamics",
+        "model": "modelly.zoo.deffuant.model:Deffuant",
+        "summary": "Agents with opinions in [0, 1] meet in random pairs and compromise only when their opinions are within a confidence bound; a wide bound ends in consensus, a narrow one in several clusters.",
+        "intended_use": [
+          "Teaching bounded confidence: how a single threshold on who listens to whom decides between consensus and lasting disagreement.",
+          "Exploring how the number of opinion clusters depends on the confidence bound, against the rule of thumb of about 1 / (2 epsilon).",
+          "A starting point for opinion-dynamics models, with a validated core to extend (networks, stubborn agents, heterogeneous bounds)."
+        ],
+        "out_of_scope": [
+          "Predicting real opinions, votes or polarisation: opinions are one abstract number and nothing is calibrated to survey data.",
+          "Designing interventions on a real population (moderation, messaging): the model has no media, networks or identities."
+        ],
+        "data": [
+          "None by default: initial opinions are drawn uniformly on [0, 1], and the bound and other parameters are illustrative values in `DeffuantScenario`."
+        ],
+        "limits": [
+          "One step is a sweep of a random perfect matching, about n / 2 meetings of the original one-pair-per-step model, so time is not in the original units.",
+          "Everybody can meet everybody: no social network or geography.",
+          "All agents share the same confidence bound and convergence parameter.",
+          "Cluster counts depend on how clusters are measured (a gap of half the bound, and clusters under `min_cluster_share` of the agents not counted)."
+        ],
+        "ethics": [
+          "Results can be read as saying that people with distant views cannot be reached; present them as a property of this stylised rule, not of a real population."
+        ],
+        "validation": [
+          {
+            "check": "epsilon = 0.4 ends in one cluster (three seeds)",
+            "test": "tests/zoo/test_deffuant.py::test_wide_bound_reaches_consensus"
+          },
+          {
+            "check": "epsilon = 0.1 leaves floor(1 / (2 epsilon)) = 5 clusters, plus or minus two (three seeds)",
+            "test": "tests/zoo/test_deffuant.py::test_narrow_bound_leaves_about_one_over_two_epsilon_clusters"
+          },
+          {
+            "check": "mean cluster count does not grow over epsilon = 0.05, 0.1, 0.2, 0.4; the mean opinion is conserved; epsilon = 0 freezes opinions; same seed, same run",
+            "test": "tests/zoo/test_deffuant.py"
+          }
+        ],
+        "references": [
+          "Deffuant, G., Neau, D., Amblard, F. and Weisbuch, G. (2000). Mixing beliefs among interacting agents. Advances in Complex Systems, 3, 87-98."
+        ],
+        "sources": [],
+        "validated": {
+          "source": "sha256:2484714b384baf171a86bae17ad0aa3f2de6b73e312936171dc3b317453c193c",
+          "modelly": "1.4.3",
+          "date": "2026-11-03"
+        }
+      }
+    },
+    {
+      "name": "schelling_regions",
+      "title": "Schelling segregation on real neighbourhoods",
+      "field": "sociology",
+      "summary": "Two groups move between census tracts when too few neighbours are like them.",
+      "version": "1.5.0",
+      "kind": "zoo",
+      "target": "modelly.zoo.schelling_regions.model:SchellingRegions",
+      "modelly": ">=1.5,<2",
+      "source": {
+        "requirement": "modelly-abm>=1.5,<2"
+      },
+      "keywords": [
+        "sociology",
+        "schelling",
+        "regions"
+      ],
+      "authors": [
+        "Modelly contributors"
+      ],
+      "license": "Apache-2.0",
+      "card": {
+        "name": "schelling_regions",
+        "title": "Schelling segregation on real neighbourhoods",
+        "model": "modelly.zoo.schelling_regions.model:SchellingRegions",
+        "summary": "Schelling's segregation model with census tracts in place of grid cells: households of two groups move between the 41 tracts of Chittenden County, Vermont, when too few of their neighbours are like them.",
+        "intended_use": [
+          "Teaching Schelling's result that mild preferences give strong segregation, on the topology of real neighbourhoods rather than a grid.",
+          "A starting point for segregation models over other regions, by passing any tract adjacency (`GeoSpace(regions).contiguity(...)`).",
+          "Comparing thresholds or group shares in relative terms through Duncan's dissimilarity index."
+        ],
+        "out_of_scope": [
+          "Describing or predicting segregation in Chittenden County or any real place: only the tracts' adjacency is real; every tract has the same number of dwellings and the households are random.",
+          "Explaining why real households move: the model has one preference rule and no prices, incomes, housing markets or discrimination.",
+          "Judging any group, tract or community from its results."
+        ],
+        "data": [
+          "The 41 census tracts of Chittenden County, Vermont, bundled from the U.S. Census Bureau's 2023 cartographic boundary file (public domain); source and checksum in `modelly/space/geo/data/NOTICE.md`.",
+          "Only their queen contiguity is used; capacity, density, group share and threshold are illustrative values in `SchellingRegionsScenario`."
+        ],
+        "limits": [
+          "Every tract has the same number of dwellings; real tract sizes and populations are ignored.",
+          "A household sees all households of its own and adjacent tracts with equal weight, and all unhappy households move at once into random free dwellings, at no cost.",
+          "Two groups only, with one shared threshold; the run stops when everybody is happy, which says nothing about real time scales.",
+          "There is no closed form: validation is qualitative (segregation far above random allocation), not a quantitative match."
+        ],
+        "ethics": [
+          "The tracts are real neighbourhoods where real people live; results must not be read as a statement about their residents or how they choose where to live.",
+          "Segregation results can be taken to blame one group or to suggest that segregation is natural or harmless; present them as the outcome of a toy preference rule, with the assumptions above."
+        ],
+        "validation": [
+          {
+            "check": "with threshold 0 nobody moves and the allocation never changes",
+            "test": "tests/zoo/test_schelling_regions.py::test_no_preference_no_moves"
+          },
+          {
+            "check": "at threshold 0.45, for three seeds, the final dissimilarity is more than five standard deviations above random allocation (30 random allocations) and more than twice its mean",
+            "test": "tests/zoo/test_schelling_regions.py::test_mild_preferences_segregate"
+          },
+          {
+            "check": "mean dissimilarity grows from threshold 0 to 0.3 to 0.5, ending above 0.9",
+            "test": "tests/zoo/test_schelling_regions.py::test_segregation_grows_with_the_threshold"
+          },
+          {
+            "check": "the 41 tracts form one connected, symmetric neighbourhood graph; households and dwellings are conserved; same seed, same moves",
+            "test": "tests/zoo/test_schelling_regions.py"
+          }
+        ],
+        "references": [
+          "Schelling, T. C. (1971). Dynamic models of segregation. Journal of Mathematical Sociology, 1(2), 143-186.",
+          "Duncan, O. D. and Duncan, B. (1955). A methodological analysis of segregation indexes. American Sociological Review, 20(2), 210-217."
+        ],
+        "sources": [],
+        "validated": {
+          "source": "sha256:55111a119d2e5e4152540accf04fa5788731106ca4b899fb50a0bb5a5fd30f47",
+          "modelly": "1.4.3",
+          "date": "2026-11-03"
+        }
+      }
+    },
+    {
+      "name": "hegselmann_krause",
+      "title": "Hegselmann-Krause bounded-confidence opinion dynamics",
+      "field": "sociology",
+      "summary": "Every agent moves to the mean opinion of those within its confidence bound.",
+      "version": "1.5.0",
+      "kind": "zoo",
+      "target": "modelly.zoo.hegselmann_krause.model:HegselmannKrause",
+      "modelly": ">=1.5,<2",
+      "source": {
+        "requirement": "modelly-abm>=1.5,<2"
+      },
+      "keywords": [
+        "sociology",
+        "hegselmann",
+        "krause"
+      ],
+      "authors": [
+        "Modelly contributors"
+      ],
+      "license": "Apache-2.0",
+      "card": {
+        "name": "hegselmann_krause",
+        "title": "Hegselmann-Krause bounded-confidence opinion dynamics",
+        "model": "modelly.zoo.hegselmann_krause.model:HegselmannKrause",
+        "summary": "Every agent moves, all at once, to the mean opinion of those within its confidence bound; the population freezes into clusters after finitely many steps, one cluster for a wide bound. A step costs O(n log n).",
+        "intended_use": [
+          "Teaching bounded confidence with synchronous averaging: how the confidence bound decides between consensus and frozen clusters.",
+          "Exploring how the number of opinion clusters falls as the confidence bound grows.",
+          "A starting point for opinion-dynamics models, with a validated core to extend (networks, stubborn agents, heterogeneous bounds)."
+        ],
+        "out_of_scope": [
+          "Predicting real opinions, votes or polarisation: opinions are one abstract number and nothing is calibrated to survey data.",
+          "Designing interventions on a real population (moderation, messaging): the model has no media, networks or identities."
+        ],
+        "data": [
+          "None by default: initial opinions are drawn uniformly on [0, 1], and the bound and other parameters are illustrative values in `HKScenario`."
+        ],
+        "limits": [
+          "Every agent hears every other agent within the bound: no social network, and everybody updates at the same time.",
+          "All agents share the same confidence bound; the dynamics are deterministic once the initial opinions are drawn.",
+          "The run stops when no opinion moves by more than `tolerance`, or after `steps` steps.",
+          "Cluster counts depend on how clusters are measured (a gap of half the bound, and clusters under `min_cluster_share` of the agents not counted)."
+        ],
+        "ethics": [
+          "Results can be read as saying that people with distant views cannot be reached; present them as a property of this stylised rule, not of a real population."
+        ],
+        "validation": [
+          {
+            "check": "epsilon = 0.3 settles into a single cluster and the run stops (three seeds)",
+            "test": "tests/zoo/test_hegselmann_krause.py::test_wide_bound_reaches_consensus"
+          },
+          {
+            "check": "epsilon = 0.05 and 0.1 leave more than two and at most 1 / (2 epsilon) clusters (three seeds)",
+            "test": "tests/zoo/test_hegselmann_krause.py::test_narrow_bound_leaves_several_clusters"
+          },
+          {
+            "check": "the O(n log n) step matches the O(n^2) definition to 1e-12 on 200 agents over five steps",
+            "test": "tests/zoo/test_hegselmann_krause.py::test_step_matches_the_quadratic_definition"
+          },
+          {
+            "check": "mean cluster count non-increasing over epsilon = 0.05, 0.1, 0.2, 0.3 and one at 0.3; a zero bound stops after one step; same seed, same run",
+            "test": "tests/zoo/test_hegselmann_krause.py"
+          }
+        ],
+        "references": [
+          "Hegselmann, R. and Krause, U. (2002). Opinion dynamics and bounded confidence: models, analysis and simulation. Journal of Artificial Societies and Social Simulation, 5(3)."
+        ],
+        "sources": [],
+        "validated": {
+          "source": "sha256:8108742edfb232e0ea3c6c93916d7c6360e59c4141897bd3f57ac8de1c85d754",
+          "modelly": "1.4.3",
+          "date": "2026-11-03"
+        }
+      }
+    },
+    {
+      "name": "axelrod",
+      "title": "Axelrod culture dissemination",
+      "field": "political science",
+      "summary": "Neighbours on a grid copy cultural traits with a probability set by similarity.",
+      "version": "1.5.0",
+      "kind": "zoo",
+      "target": "modelly.zoo.axelrod.model:Axelrod",
+      "modelly": ">=1.5,<2",
+      "source": {
+        "requirement": "modelly-abm>=1.5,<2"
+      },
+      "keywords": [
+        "political science",
+        "axelrod"
+      ],
+      "authors": [
+        "Modelly contributors"
+      ],
+      "license": "Apache-2.0",
+      "card": {
+        "name": "axelrod",
+        "title": "Axelrod culture dissemination",
+        "model": "modelly.zoo.axelrod.model:Axelrod",
+        "summary": "Axelrod's model of the dissemination of culture: sites of a grid copy traits from neighbours with a probability set by their similarity, until the map freezes into regions of identical culture.",
+        "intended_use": [
+          "Teaching how local convergence can produce global polarisation: one culture for few traits per feature, many regions for many.",
+          "Exploring the transition in the number of regions as traits, features or grid size change.",
+          "A starting point for social-influence models with a validated core to extend (noise, media, other networks)."
+        ],
+        "out_of_scope": [
+          "Describing or predicting real cultures, opinions or political views: features and traits are abstract integers with no measured meaning.",
+          "Drawing conclusions about real communities, migration or policy from the number or size of regions."
+        ],
+        "data": [
+          "None by default: cultures are drawn uniformly at random, and grid size, features and traits are illustrative values in `AxelrodScenario` (the 10 x 10, five-feature setting of the original paper)."
+        ],
+        "limits": [
+          "A small square grid without wrapping, von Neumann neighbours only: sites at the edge have fewer neighbours, and nobody moves.",
+          "Traits are nominal and all features weigh the same; there is no noise, so the absorbing state is reached and kept for ever.",
+          "Validation is qualitative, against the original paper's regimes on a small grid; regions on larger grids and the exact transition point are not checked."
+        ],
+        "ethics": [
+          "Results about polarisation or the persistence of minority cultures can be read as statements about real groups; present them as properties of an abstract rule, not of any society."
+        ],
+        "validation": [
+          {
+            "check": "on the 10 x 10, five-feature grid, two traits end in a single region for at least four seeds of five",
+            "test": "tests/zoo/test_axelrod.py::test_few_traits_end_in_monoculture"
+          },
+          {
+            "check": "thirty traits leave more than 25 regions in every one of five runs",
+            "test": "tests/zoo/test_axelrod.py::test_many_traits_leave_many_regions"
+          },
+          {
+            "check": "the mean number of regions grows from two to fifteen to sixty traits",
+            "test": "tests/zoo/test_axelrod.py::test_regions_grow_with_traits"
+          },
+          {
+            "check": "in the frozen map every bond has overlap 0 or all features; the interaction rule on hand-made pairs; same seed, same culture map",
+            "test": "tests/zoo/test_axelrod.py"
+          }
+        ],
+        "references": [
+          "Axelrod, R. (1997). The dissemination of culture: a model with local convergence and global polarization. Journal of Conflict Resolution, 41(2), 203-226.",
+          "Castellano, C., Marsili, M. and Vespignani, A. (2000). Nonequilibrium phase transition in a model for social influence. Physical Review Letters, 85(16), 3536-3539."
+        ],
+        "sources": [],
+        "validated": {
+          "source": "sha256:1698a96d5044bd3a59afd43a0f73bd6f8c4ecf693bf0da76156add40fdc8d4c8",
+          "modelly": "1.4.3",
+          "date": "2026-11-03"
+        }
+      }
+    },
+    {
+      "name": "nagel_schreckenberg",
+      "title": "Nagel-Schreckenberg traffic",
+      "field": "transport",
+      "summary": "Cars on a ring road accelerate, brake to the gap ahead and dawdle at random.",
+      "version": "1.5.0",
+      "kind": "zoo",
+      "target": "modelly.zoo.nagel_schreckenberg.model:NagelSchreckenberg",
+      "modelly": ">=1.5,<2",
+      "source": {
+        "requirement": "modelly-abm>=1.5,<2"
+      },
+      "keywords": [
+        "transport",
+        "nagel",
+        "schreckenberg"
+      ],
+      "authors": [
+        "Modelly contributors"
+      ],
+      "license": "Apache-2.0",
+      "card": {
+        "name": "nagel_schreckenberg",
+        "title": "Nagel-Schreckenberg traffic",
+        "model": "modelly.zoo.nagel_schreckenberg.model:NagelSchreckenberg",
+        "summary": "The Nagel-Schreckenberg cellular automaton: cars on a single-lane ring road accelerate, brake to the gap ahead and dawdle at random, and jams form on their own and travel backwards.",
+        "intended_use": [
+          "Teaching the fundamental diagram of traffic: free flow below a critical density, jams above it, and how random dawdling lowers the peak flow.",
+          "A starting point for cellular-automaton traffic models with a validated core to extend (lanes, on-ramps, signals).",
+          "Comparing densities, speed limits or dawdling probabilities in relative terms."
+        ],
+        "out_of_scope": [
+          "Predicting flows, speeds or travel times on a real road: cells, steps and dawdling are not calibrated to any road or driver population.",
+          "Road design or safety decisions: there are no lanes, junctions, vehicle types or crashes."
+        ],
+        "data": [
+          "None by default: road length, density, speed limit and dawdling probability are illustrative values in `TrafficScenario`."
+        ],
+        "limits": [
+          "One lane on a closed ring: no overtaking, entries, exits or junctions, and the number of cars is fixed.",
+          "Space and time are discrete (one cell, one step) and every car follows the same rule with the same speed limit and dawdling probability.",
+          "The exact checks hold away from the critical density `1 / (max_speed + 1)`, where transients are longest."
+        ],
+        "ethics": [
+          "Results could be quoted in decisions about real roads that affect the people who use and live near them; present them as properties of an uncalibrated toy road, not as estimates for a real one."
+        ],
+        "validation": [
+          {
+            "check": "without dawdling the steady flow is exactly min(density * max_speed, 1 - density) at seven densities on both sides of the critical density",
+            "test": "tests/zoo/test_nagel_schreckenberg.py::test_deterministic_flow_is_exact"
+          },
+          {
+            "check": "with dawdling the flow peaks at an interior density and falls steadily on the jammed branch",
+            "test": "tests/zoo/test_nagel_schreckenberg.py::test_flow_rises_then_falls"
+          },
+          {
+            "check": "at low density the flow is density * (max_speed - dawdle) within five standard deviations of the mean of independent Bernoulli dawdles",
+            "test": "tests/zoo/test_nagel_schreckenberg.py::test_free_flow_speed_is_max_speed_minus_dawdle"
+          },
+          {
+            "check": "cars never share a cell and never exceed the speed limit; impossible densities are rejected; same seed, same run",
+            "test": "tests/zoo/test_nagel_schreckenberg.py"
+          }
+        ],
+        "references": [
+          "Nagel, K. and Schreckenberg, M. (1992). A cellular automaton model for freeway traffic. Journal de Physique I, 2(12), 2221-2229."
+        ],
+        "sources": [],
+        "validated": {
+          "source": "sha256:9105865a84318fd35163601c27e6fa6f0034edbdddfdd6c48c04416259f34c16",
+          "modelly": "1.4.3",
+          "date": "2026-11-03"
+        }
+      }
+    },
+    {
+      "name": "road_traffic",
+      "title": "Traffic assignment on a real street network",
+      "field": "transport",
+      "summary": "Random trips routed by shortest path over OpenStreetMap streets of Burlington.",
+      "version": "1.5.0",
+      "kind": "zoo",
+      "target": "modelly.zoo.road_traffic.model:RoadTraffic",
+      "modelly": ">=1.5,<2",
+      "source": {
+        "requirement": "modelly-abm>=1.5,<2"
+      },
+      "keywords": [
+        "transport",
+        "road",
+        "traffic"
+      ],
+      "authors": [
+        "Modelly contributors"
+      ],
+      "license": "Apache-2.0",
+      "card": {
+        "name": "road_traffic",
+        "title": "Traffic assignment on a real street network",
+        "model": "modelly.zoo.road_traffic.model:RoadTraffic",
+        "summary": "All-or-nothing traffic assignment on the drivable streets of downtown Burlington, Vermont: random trips between junctions drive the shortest path by length, and the model counts the vehicles on every street segment.",
+        "intended_use": [
+          "Teaching the assignment step of the four-step transport model and its link to edge betweenness.",
+          "Seeing which street segments shortest paths load most under uniform demand, on Burlington or on any strongly connected `RoadNetwork`.",
+          "A starting point for assignment models with a validated core to extend (real demand matrices, congestion, equilibrium assignment)."
+        ],
+        "out_of_scope": [
+          "Predicting real traffic in Burlington or elsewhere: demand is uniform over junctions, not measured, and nothing is calibrated against counts.",
+          "Decisions about real streets (closures, signals, one-way changes) without real origin-destination demand and congestion.",
+          "Networks much larger than a few thousand junctions: the model holds `n x n` arrays."
+        ],
+        "data": [
+          "The drivable streets of downtown Burlington, Vermont, bundled from OpenStreetMap (\u00a9 OpenStreetMap contributors, Open Database License 1.0), one-way streets kept one-way; source and checksum in `modelly/space/geo/data/NOTICE.md`.",
+          "Trips per step and run length are illustrative values in `RoadTrafficScenario`; origins and destinations are drawn uniformly among the junctions."
+        ],
+        "limits": [
+          "All-or-nothing assignment: every trip takes the shortest path by length, with no congestion, travel times or route choice.",
+          "Uniform demand between every ordered pair of junctions; real trips start and end at homes, jobs and shops, not at junctions.",
+          "The network is the extract as of its pinned date, limited to its largest strongly connected part; streets outside the box do not exist for the model."
+        ],
+        "ethics": [
+          "Segment flows on real streets can look like real traffic counts; never present them as such, since the demand behind them is invented.",
+          "Decisions about which streets carry traffic affect the people who live and work along them; say that demand is uniform and congestion absent whenever results are shown."
+        ],
+        "validation": [
+          {
+            "check": "the model's edge betweenness equals NetworkX's edge_betweenness_centrality on every segment, and its total is the number of segments on all shortest paths",
+            "test": "tests/zoo/test_road_traffic.py::test_betweenness_matches_networkx"
+          },
+          {
+            "check": "for three seeds every simulated flow is within five binomial standard deviations of its expectation, and segments on no shortest path carry nothing",
+            "test": "tests/zoo/test_road_traffic.py::test_flows_are_binomial_around_the_betweenness"
+          },
+          {
+            "check": "distances are NetworkX's and one-way streets make routes asymmetric; a network with unreachable junctions is refused; same seed, same flows",
+            "test": "tests/zoo/test_road_traffic.py"
+          }
+        ],
+        "references": [
+          "Brandes, U. (2001). A faster algorithm for betweenness centrality. Journal of Mathematical Sociology, 25(2), 163-177.",
+          "Girvan, M. and Newman, M. E. J. (2002). Community structure in social and biological networks. Proceedings of the National Academy of Sciences, 99(12), 7821-7826.",
+          "Ortuzar, J. de D. and Willumsen, L. G. (2011). Modelling Transport, 4th ed. Wiley."
+        ],
+        "sources": [],
+        "validated": {
+          "source": "sha256:2eb877a85935d317380fb447f97f03a6f7794ba25034d40478ecb8ab175a43be",
+          "modelly": "1.4.3",
+          "date": "2026-11-03"
+        }
+      }
+    },
+    {
+      "name": "bass_diffusion",
+      "title": "Bass diffusion of innovation on a network",
+      "field": "energy",
+      "summary": "Households adopt from advertising and from adopting neighbours.",
+      "version": "1.5.0",
+      "kind": "zoo",
+      "target": "modelly.zoo.bass_diffusion.model:BassDiffusion",
+      "modelly": ">=1.5,<2",
+      "source": {
+        "requirement": "modelly-abm>=1.5,<2"
+      },
+      "keywords": [
+        "energy",
+        "bass",
+        "diffusion"
+      ],
+      "authors": [
+        "Modelly contributors"
+      ],
+      "license": "Apache-2.0",
+      "card": {
+        "name": "bass_diffusion",
+        "title": "Bass diffusion of innovation on a network",
+        "model": "modelly.zoo.bass_diffusion.model:BassDiffusion",
+        "summary": "Households adopt an innovation, rooftop solar for instance, from advertising and from adopting neighbours, either well mixed as in Bass's model or over a random network.",
+        "intended_use": [
+          "Teaching the Bass diffusion curve and the roles of innovation (p) and imitation (q).",
+          "Showing how network structure changes diffusion: a sparse network adopts more slowly than the well-mixed curve.",
+          "A starting point for adoption models (solar, heat pumps) with a validated core to extend (subsidies, heterogeneous households, real networks)."
+        ],
+        "out_of_scope": [
+          "Forecasting real adoption of a product or technology: the default p and q are illustrative, not fitted to sales or installation data.",
+          "Decisions about subsidies or targeting real households without parameters and a network estimated on them.",
+          "Products that can be abandoned or bought repeatedly: adoption here is once and for ever."
+        ],
+        "data": [
+          "None by default: the number of households, p, q, the step and the mean degree are illustrative values in `BassScenario`.",
+          "The network, when used, is a random graph drawn by the model (`households * degree / 2` random distinct pairs), not a measured social network."
+        ],
+        "limits": [
+          "Every household has the same p and q; there are no prices, incomes, dwelling types or capacity limits.",
+          "Adoption is drawn once per step of length `dt`, so the curve carries an Euler discretisation error against the Bass equation.",
+          "The network is Erdos-Renyi-like with no clustering or communities beyond chance; real acquaintance networks are not represented.",
+          "Closed population: no new households and no abandonment."
+        ],
+        "ethics": [
+          "Results on who adopts first could inform which households a programme targets; present them with the assumptions above, since the model knows nothing about who can afford an innovation."
+        ],
+        "validation": [
+          {
+            "check": "well mixed, for three seeds, the adoption share is within the Euler error plus five linear-noise standard deviations of the Bass equation at every step",
+            "test": "tests/zoo/test_bass_diffusion.py::test_well_mixed_follows_bass_equation"
+          },
+          {
+            "check": "a dense network (50 neighbours) stays within the same bound",
+            "test": "tests/zoo/test_bass_diffusion.py::test_dense_network_is_close_to_well_mixed"
+          },
+          {
+            "check": "a sparse network (4 neighbours) lags the well-mixed recursion by more than three standard deviations at mid-diffusion",
+            "test": "tests/zoo/test_bass_diffusion.py::test_sparse_network_adopts_more_slowly"
+          },
+          {
+            "check": "adoption never reverts; unknown mixing is rejected; same seed, same curve",
+            "test": "tests/zoo/test_bass_diffusion.py"
+          }
+        ],
+        "references": [
+          "Bass, F. M. (1969). A new product growth for model consumer durables. Management Science, 15(5), 215-227."
+        ],
+        "sources": [],
+        "validated": {
+          "source": "sha256:fb359feb19e8eecbe8b781b72a5dc84f3f69abeedf30948f7d43d28de7ff684f",
+          "modelly": "1.4.3",
+          "date": "2026-11-03"
+        }
+      }
+    }
+  ]
+}
